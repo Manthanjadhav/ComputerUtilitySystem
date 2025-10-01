@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.NetworkInformation;
 
 
 namespace SysMetrix
@@ -237,48 +238,43 @@ namespace SysMetrix
         {
             try
             {
-                // Get all host addresses asynchronously
-                var host = await Dns.GetHostEntryAsync(Dns.GetHostName());
-
-                // Pick the first valid IPv4 that isn't loopback
-                var ip = host.AddressList
-                             .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork
-                                                  && !IPAddress.IsLoopback(a));
-
-                if (ip != null)
-                    return ip.ToString();
-
-                // Fallback: try outbound UDP socket (real NIC only)
-                return await Task.Run(() =>
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
                 {
-                    try
+                    if (ni.OperationalStatus != OperationalStatus.Up)
+                        continue;
+
+                    // Skip virtual / tunnel / loopback NICs
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
+                        ni.Description.ToLower().Contains("virtual") ||
+                        ni.Description.ToLower().Contains("vmware") ||
+                        ni.Description.ToLower().Contains("hyper-v"))
+                        continue;
+
+                    var props = ni.GetIPProperties();
+
+                    // Must have a default gateway → usually indicates “real” LAN NIC
+                    if (props.GatewayAddresses == null || props.GatewayAddresses.Count == 0)
+                        continue;
+
+                    foreach (var addr in props.UnicastAddresses)
                     {
-                        using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+                        if (addr.Address.AddressFamily == AddressFamily.InterNetwork &&
+                            !IPAddress.IsLoopback(addr.Address))
                         {
-                            socket.Connect("8.8.8.8", 65530); // doesn't actually send packets
-                            if (socket.LocalEndPoint is IPEndPoint endPoint
-                                && !IPAddress.IsLoopback(endPoint.Address))
-                            {
-                                return endPoint.Address.ToString();
-                            }
+                            return addr.Address.ToString();
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        // log fallback error if needed
-                        Console.Error.WriteLine($"[IP Lookup Fallback Error] {ex.Message}");
-                    }
-
-                    return string.Empty; // nothing found
-                });
+                }
             }
             catch (Exception ex)
             {
-                // top-level error handling
                 Console.Error.WriteLine($"[IP Lookup Error] {ex.Message}");
-                return string.Empty;
             }
+
+            // nothing valid → return empty
+            return string.Empty;
         }
+
 
         // Synchronous wrapper methods for backward compatibility
         public static CpuUsageInfo GetCpuUsage()
