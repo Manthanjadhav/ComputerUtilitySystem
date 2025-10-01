@@ -4,7 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks; 
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Sockets;
+
 
 namespace SysMetrix
 {
@@ -18,7 +21,8 @@ namespace SysMetrix
                 MachineName = Environment.MachineName,
                 ProcessorCount = Environment.ProcessorCount,
                 Cores = new List<CoreUsage>(),
-                DiskUsage = new List<DiskUsage>()
+                DiskUsage = new List<DiskUsage>(),
+                IpAddress = string.Empty
             };
 
             try
@@ -28,7 +32,8 @@ namespace SysMetrix
                 {
                     Task.Run(async () => await GetCpuMetricsAsync(cpuUsageInfo)),
                     Task.Run(async () => cpuUsageInfo.SystemInfo = await GetSystemInfoSimpleAsync()),
-                    Task.Run(async () => cpuUsageInfo.DiskUsage = await GetDiskUsageAsync())
+                    Task.Run(async () => cpuUsageInfo.DiskUsage = await GetDiskUsageAsync()),
+                    Task.Run(async () => cpuUsageInfo.IpAddress = await GetLocalIPAddress())
                 };
 
                 await Task.WhenAll(tasks);
@@ -226,6 +231,53 @@ namespace SysMetrix
 
                 return diskUsageList;
             });
+        }
+
+        private static async Task<string> GetLocalIPAddress()
+        {
+            try
+            {
+                // Get all host addresses asynchronously
+                var host = await Dns.GetHostEntryAsync(Dns.GetHostName());
+
+                // Pick the first valid IPv4 that isn't loopback
+                var ip = host.AddressList
+                             .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork
+                                                  && !IPAddress.IsLoopback(a));
+
+                if (ip != null)
+                    return ip.ToString();
+
+                // Fallback: try outbound UDP socket (real NIC only)
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+                        {
+                            socket.Connect("8.8.8.8", 65530); // doesn't actually send packets
+                            if (socket.LocalEndPoint is IPEndPoint endPoint
+                                && !IPAddress.IsLoopback(endPoint.Address))
+                            {
+                                return endPoint.Address.ToString();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // log fallback error if needed
+                        Console.Error.WriteLine($"[IP Lookup Fallback Error] {ex.Message}");
+                    }
+
+                    return string.Empty; // nothing found
+                });
+            }
+            catch (Exception ex)
+            {
+                // top-level error handling
+                Console.Error.WriteLine($"[IP Lookup Error] {ex.Message}");
+                return string.Empty;
+            }
         }
 
         // Synchronous wrapper methods for backward compatibility

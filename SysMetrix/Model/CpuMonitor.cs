@@ -9,13 +9,14 @@ namespace SysMetrix
     // Data model classes
     public class CpuUsageInfo
     {
+        public string IpAddress { get; set; }
         public string Timestamp { get; set; }
         public string MachineName { get; set; }
         public int ProcessorCount { get; set; }
         public double TotalCpuUsage { get; set; }
         public List<CoreUsage> Cores { get; set; }
         public SystemInfoSimple SystemInfo { get; set; }
-        public List<DiskUsage> DiskUsage { get; set; } 
+        public List<DiskUsage> DiskUsage { get; set; }
     }
 
     public class CoreUsage
