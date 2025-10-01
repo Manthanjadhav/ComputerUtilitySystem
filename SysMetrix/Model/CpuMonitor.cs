@@ -15,8 +15,7 @@ namespace SysMetrix
         public double TotalCpuUsage { get; set; }
         public List<CoreUsage> Cores { get; set; }
         public SystemInfoSimple SystemInfo { get; set; }
-        public List<DiskUsage> DiskUsage { get; set; }
-        public string Error { get; set; }
+        public List<DiskUsage> DiskUsage { get; set; } 
     }
 
     public class CoreUsage

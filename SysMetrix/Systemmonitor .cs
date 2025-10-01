@@ -35,7 +35,8 @@ namespace SysMetrix
             }
             catch (Exception ex)
             {
-                cpuUsageInfo.Error = $"Error getting system usage: {ex.Message}";
+                Console.Error.WriteLine($"Error getting system info: {ex.Message}");
+                //cpuUsageInfo.Error = $"Error getting system usage: {ex.Message}";
             }
 
             return cpuUsageInfo;
