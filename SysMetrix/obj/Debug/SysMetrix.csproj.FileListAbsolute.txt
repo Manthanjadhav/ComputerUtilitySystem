@@ -1,0 +1,6 @@
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\bin\Debug\SysMetrix.exe.config
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\bin\Debug\SysMetrix.exe
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\bin\Debug\SysMetrix.pdb
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\obj\Debug\SysMetrix.csproj.CoreCompileInputs.cache
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\obj\Debug\SysMetrix.exe
+C:\Users\admin\Source\Repos\SysMetrix\SysMetrix\obj\Debug\SysMetrix.pdb
